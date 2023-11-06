@@ -1,0 +1,45 @@
+name: flutter_ui_challenges
+description: Trying to replicate various app UIs in flutter
+version: 3.1.0
+
+environment:
+  sdk: '>=2.19.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_swiper_null_safety: ^1.0.2
+  font_awesome_flutter: ^10.2.1
+  intl: ^0.17.0
+  url_launcher: ^6.1.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.11.0
+  flutter_lints: ^2.0.1
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/icon.png"
+  image_path_ios: "assets/icon/app-store-logo.jpg"
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/
+    - assets/icon/
+    - assets/flare/
+    - lib/src/pages/login/
+    - lib/src/pages/profile/
+    # Add any additional assets here
+  fonts:
+    - family: icomoon
+      fonts:
+        - asset: assets/fonts/icomoon.ttf
+
+    - family: MyFlutterApp
+      fonts:
+        - asset: assets/fonts/MyFlutterApp.ttf
