@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "994629670135",
+    "firebase_url": "https://flutterapps-ec7a0-default-rtdb.firebaseio.com",
+    "project_id": "flutterapps-ec7a0",
+    "storage_bucket": "flutterapps-ec7a0.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994629670135:android:c48de452770b5c14216ff2",
+        "android_client_info": {
+          "package_name": "com.example.firebase"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8cZIHO1i8FWDk_ZNIuKmBIv-lrXZiVus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:994629670135:android:4b1f7385b81c2a0f216ff2",
+        "android_client_info": {
+          "package_name": "com.example.traiding_admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD8cZIHO1i8FWDk_ZNIuKmBIv-lrXZiVus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
