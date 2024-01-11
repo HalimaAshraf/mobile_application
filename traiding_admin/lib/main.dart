@@ -1,125 +1,396 @@
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  Platform.isAndroid
+      ? await Firebase.initializeApp(
+    options: const FirebaseOptions(
+      apiKey: "AIzaSyD0oBokSf_n1MWXzOIP2KS6ndq7Ue2EmMc",
+      appId: "1:39537905776:android:2b6f2cea23aec1b2f7a4b5",
+      messagingSenderId: "39537905776",
+      projectId: "flutter-mobile-applicati-473c5",
+    ),
+  )
+      : await Firebase.initializeApp();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+    return  MaterialApp(
+      debugShowCheckedModeBanner: false,
+
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+  const MyHomePage({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  File? _pickedImage;
+  VideoPlayerController? _videoController;
+  final TextEditingController _textController = TextEditingController();
+  FlutterSoundPlayer? _audioPlayer;
+  FlutterSoundRecorder? _audioRecorder;
+  bool _isRecording = false;
+  String _currentRecording = '';
+  Color _micIconColor = Colors.black;
+  List<String> files = [];
+  List<Map<String, dynamic>> firebaseDataList = [];
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
+  DatabaseReference _databaseReference = FirebaseDatabase.instance.reference();
+
+  _MyHomePageState() {
+    _audioPlayer = FlutterSoundPlayer();
+    _audioRecorder = FlutterSoundRecorder();
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile =
+    await ImagePicker().pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _pickedImage = File(pickedFile.path);
+        _videoController = null;
+      });
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final pickedFile =
+    await ImagePicker().pickVideo(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _videoController = VideoPlayerController.file(File(pickedFile.path))
+          ..initialize().then((_) {
+            _pickedImage = null;
+            setState(() {});
+          });
+      });
+    }
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      await _audioRecorder!.startRecorder(
+        toFile: 'path/to/your/audio/file.aac',
+        codec: Codec.aacMP4,
+      );
+
+      setState(() {
+        _isRecording = true;
+        _micIconColor = Colors.blue;
+      });
+    } catch (e) {
+      print("Error starting recording: $e");
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    try {
+      String? path = await _audioRecorder!.stopRecorder();
+      if (path != null) {
+        setState(() {
+          _isRecording = false;
+          _currentRecording = path;
+          _micIconColor = Colors.black;
+        });
+      }
+    } catch (e) {
+      print("Error stopping recording: $e");
+    }
+  }
+
+  void _createNewFile() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String content = '';
+
+        return AlertDialog(
+          title: const Text('New File'),
+          content: TextField(
+            onChanged: (value) {
+              content = value;
+            },
+            maxLines: null,
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                _saveFile(content);
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _saveFile(String content) {
+    String fileName = 'File_${DateTime.now().millisecondsSinceEpoch}.txt';
+    files.add(fileName);
+    // Implement file saving logic and update the files list
+    // For example, you can use a file name with a timestamp
+    // Save content to the file - Implement this part based on your requirements
+  }
+
+  void _openAndEditFile(String fileName) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        String content = ''; // Load the content of the file here
+
+        return AlertDialog(
+          title: Text(fileName),
+          content: TextField(
+            controller: TextEditingController(text: content),
+            onChanged: (value) {
+              content = value;
+            },
+            maxLines: null,
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                _saveFile(content);
+                Navigator.pop(context);
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _postToFirebase() async {
+    // Check if at least one type of data is selected
+    if (_pickedImage == null &&
+        _videoController == null &&
+        _textController.text.isEmpty &&
+        _currentRecording.isEmpty) {
+      // Show a message to add data first
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add at least one type of data.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Upload selected data to Firebase Realtime Database
+    Map<String, dynamic> postData = {
+      'image': _pickedImage?.path ?? '',
+      'video': _videoController?.dataSource ?? '',
+      'text': _textController.text,
+      'audio': _currentRecording,
+    };
+
+    try {
+      await _databaseReference.push().set(postData);
+
+      // Clear selected data from the UI
+      setState(() {
+        _pickedImage = null;
+        _videoController = null;
+        _textController.clear();
+        _currentRecording = '';
+        files.clear();
+      });
+
+      // Show success message using a SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data saved successfully.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } catch (error) {
+      // Handle error if data couldn't be saved
+      print('Error saving data: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save data.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _fetchDataFromFirebase() {
+    _databaseReference.once().then((DatabaseEvent event) {
+      DataSnapshot snapshot = event.snapshot;
+
+      if (snapshot.value != null) {
+        setState(() {
+          firebaseDataList.clear();
+          if (snapshot.value is Map) {
+            (snapshot.value as Map).forEach((key, value) {
+              firebaseDataList.add(Map<String, dynamic>.from(value));
+            });
+
+            // Print data to the console for debugging
+            print('Firebase Data: $firebaseDataList');
+          }
+        });
+
+        // Show a message or navigate to the data view
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Firebase data retrieved successfully.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show a message if there is no data
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No data found in Firebase.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }).catchError((error) {
+      print('Error fetching data from Firebase: $error');
+      // Handle error if fetching data fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to fetch data from Firebase.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+  void _viewFirebaseDataDetails(int index) {
+    // Implement how you want to view the details for the selected data
+    showDialog(
+      context: context,
+      builder: (context) {
+        // Use firebaseDataList[index] to display details
+        // ...
+        return AlertDialog(
+          title: const Text('Data Details'),
+          content: Text('Details for data at index $index'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text('Close'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    double containerSize = MediaQuery.of(context).size.width * 0.4;
+    double fontSize = MediaQuery.of(context).size.width * 0.04;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Traiding Admin pannel'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cloud_download),
+            onPressed: _fetchDataFromFirebase,
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 20),
+              Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  border: Border.all(),
+                ),
+                child: _pickedImage != null
+                    ? Image.file(_pickedImage!, fit: BoxFit.cover)
+                    : IconButton(
+                  icon: const Icon(Icons.camera_alt),
+                  onPressed: _pickImage,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  border: Border.all(),
+                ),
+                child: _videoController != null
+                    ? AspectRatio(
+                  aspectRatio: _videoController!.value.aspectRatio,
+                  child: VideoPlayer(_videoController!),
+                )
+                    : IconButton(
+                  icon: const Icon(Icons.videocam),
+                  onPressed: _pickVideo,
+                ),
+              ),
+
+              // List of Firebase Data
+              const SizedBox(height: 20),
+              if (firebaseDataList.isNotEmpty)
+                Column(
+                  children: firebaseDataList.asMap().entries.map((entry) {
+                    int index = entry.key;
+                    Map<String, dynamic> data = entry.value;
+                    return ListTile(
+                      title: Text('Data at Index $index'),
+                      onTap: () {
+                        _viewFirebaseDataDetails(index);
+                      },
+                    );
+                  }).toList(),
+                ),
+              const SizedBox(height: 20),
+              if (_currentRecording.isNotEmpty)
+                Text('Recorded Voice: $_currentRecording'),
+            ],
+          ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      bottomNavigationBar: BottomAppBar(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ElevatedButton(
+            onPressed: _postToFirebase,
+            child: const Text('Post'),
+          ),
+        ),
+      ),
     );
   }
 }
